@@ -434,8 +434,8 @@ sub export_key_pem {
   my ($self, $type, $password, $cipher) = @_;
   my $key = $self->export_key_der($type||'');
   return unless $key;
-  return der_to_pem($key, "EC PRIVATE KEY", $password, $cipher) if $type eq 'private';
-  return der_to_pem($key, "PUBLIC KEY") if $type eq 'public' || $type eq 'public_compressed';
+  return der_to_pem($key, "EC PRIVATE KEY", $password, $cipher) if substr($type, 0, 7) eq 'private';
+  return der_to_pem($key, "PUBLIC KEY") if substr($type,0, 6) eq 'public';
 }
 
 sub export_key_jwk {
