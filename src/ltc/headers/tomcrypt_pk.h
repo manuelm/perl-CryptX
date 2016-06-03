@@ -3,7 +3,8 @@
 enum {
    PK_PUBLIC=0,
    PK_PRIVATE=1,
-   PK_PUBLIC_COMPRESSED=2  /* used only when exporting public ECC key */
+   PK_PUBLIC_COMPRESSED=2, /* used only when exporting public ECC key */
+   PK_CURVEOID=4           /* used only when exporting public ECC key */
 };
 
 /* Indicates standard output formats that can be read e.g. by OpenSSL or GnuTLS */
