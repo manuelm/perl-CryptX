@@ -186,7 +186,7 @@ ltc_ecc_set_type* _ecc_set_dp_from_SV(ltc_ecc_set_type *dp, SV *curve)
 {
   HV *h;
   SV *param, **pref;
-  SV **sv_cofactor, **sv_prime, **sv_A, **sv_B, **sv_order, **sv_Gx, **sv_Gy;
+  SV **sv_cofactor, **sv_prime, **sv_A, **sv_B, **sv_order, **sv_Gx, **sv_Gy, **sv_oid;
   int err;
   char *ch_name;
   STRLEN l_name;
@@ -224,6 +224,26 @@ ltc_ecc_set_type* _ecc_set_dp_from_SV(ltc_ecc_set_type *dp, SV *curve)
   if (!SvOK(*sv_Gx      )) croak("FATAL: ecparams: undefined param Gx");
   if (!SvOK(*sv_Gy      )) croak("FATAL: ecparams: undefined param Gy");
   if (!SvOK(*sv_cofactor)) croak("FATAL: ecparams: undefined param cofactor");
+
+  /* parse optional oid param */
+  if ((sv_oid = hv_fetchs(h, "oid", 0)) != NULL) {
+    char *str_oid, *end_ptr;
+    unsigned int i = 0;
+    UV uv;
+
+    if (!SvOK(*sv_oid)) croak("FATAL: ecparams: undefined param oid");
+    str_oid = SvPV_nolen(*sv_oid);
+    for (i = 0; i < sizeof(oid.OID)/sizeof(oid.OID[0]) && *str_oid != '\0'; i++) {
+      errno = 0;
+      oid.OID[i] = strtoul(str_oid, &end_ptr, 10);
+      if (errno != 0 || str_oid == end_ptr) break; // parsing failed
+      str_oid = end_ptr;
+      if (*str_oid != '.') break;
+      str_oid++;
+    }
+    if (*end_ptr != '\0') croak("FATAL: ecparams: oid has invalid format");
+    oid.OIDlen = i + 1;
+  }
 
   err = ecc_dp_set( dp,
                     SvPV_nolen(*sv_prime),
