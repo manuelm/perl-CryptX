@@ -190,6 +190,7 @@ ltc_ecc_set_type* _ecc_set_dp_from_SV(ltc_ecc_set_type *dp, SV *curve)
   int err;
   char *ch_name;
   STRLEN l_name;
+  oid_st oid = { .OIDlen = 0 };
 
   if (SvPOK(curve)) {
     ch_name = SvPV(curve, l_name);
@@ -232,7 +233,8 @@ ltc_ecc_set_type* _ecc_set_dp_from_SV(ltc_ecc_set_type *dp, SV *curve)
                     SvPV_nolen(*sv_Gx),
                     SvPV_nolen(*sv_Gy),
                     (unsigned long)SvUV(*sv_cofactor),
-                    ch_name );
+                    ch_name,
+                    oid );
   return err == CRYPT_OK ? dp : NULL;
 }
 

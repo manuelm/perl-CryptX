@@ -16,7 +16,7 @@
 
 #ifdef LTC_MECC
 
-int ecc_dp_set(ltc_ecc_set_type *dp, char *ch_prime, char *ch_A, char *ch_B, char *ch_order, char *ch_Gx, char *ch_Gy, unsigned long cofactor, char *ch_name)
+int ecc_dp_set(ltc_ecc_set_type *dp, char *ch_prime, char *ch_A, char *ch_B, char *ch_order, char *ch_Gx, char *ch_Gy, unsigned long cofactor, char *ch_name, oid_st oid)
 {
   unsigned long l_name, l_prime, l_A, l_B, l_order, l_Gx, l_Gy;
 
@@ -55,6 +55,8 @@ int ecc_dp_set(ltc_ecc_set_type *dp, char *ch_prime, char *ch_A, char *ch_B, cha
   dp->order = XMALLOC(1+l_order); strncpy(dp->order, ch_order, 1+l_order);
   dp->Gx    = XMALLOC(1+l_Gx);    strncpy(dp->Gx,    ch_Gx,    1+l_Gx);
   dp->Gy    = XMALLOC(1+l_Gy);    strncpy(dp->Gy,    ch_Gy,    1+l_Gy);
+  dp->oid.OIDlen = oid.OIDlen;
+  XMEMCPY(dp->oid.OID, oid.OID, dp->oid.OIDlen * sizeof(dp->oid.OID[0]));
 
   return CRYPT_OK;
 }
