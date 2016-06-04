@@ -85,10 +85,36 @@ int ecc_export_full(unsigned char *out, unsigned long *outlen, int type, ecc_key
           }
       */
 
-      //FIXME curve lookup if OIDlen == 0?
+      const oid_st *oid = NULL;
+      if (key->dp->oid.OIDlen > 0) {
+          oid = &key->dp->oid;
+      }
+      else if (key->idx > -1) {
+          oid = &ltc_ecc_sets[key->idx].oid;
+      }
+      else {
+          int x;
+          /* lookup curve OID by curve parameters
+           * we assume every parameter has the same case (usually uppercase)
+           * and no leading zeros
+          */
+          for (x = 0; ltc_ecc_sets[x].size != 0; x++) {
+              if (XSTRCMP(ltc_ecc_sets[x].prime, key->dp->prime) == 0 &&
+                  XSTRCMP(ltc_ecc_sets[x].A,     key->dp->A)     == 0 &&
+                  XSTRCMP(ltc_ecc_sets[x].B,     key->dp->B)     == 0 &&
+                  XSTRCMP(ltc_ecc_sets[x].order, key->dp->order) == 0 &&
+                  XSTRCMP(ltc_ecc_sets[x].Gx,    key->dp->Gx)    == 0 &&
+                  XSTRCMP(ltc_ecc_sets[x].Gy,    key->dp->Gy)    == 0 &&
+                  ltc_ecc_sets[x].cofactor == key->dp->cofactor) {
+                  oid = &ltc_ecc_sets[x].oid;
+                  break;
+              }
+          }
+      }
+      if (oid == NULL) { err = CRYPT_INVALID_ARG; goto error; } //TODO or fallback?
 
-      /* ECParameters of ECPrivateKey SEQUENCE below */
-      LTC_SET_ASN1(asn_ecparams, 0, LTC_ASN1_OBJECT_IDENTIFIER, key->dp->oid.OID, key->dp->oid.OIDlen);
+      /* ECParameters used by ECPrivateKey or SubjectPublicKeyInfo below */
+      LTC_SET_ASN1(asn_ecparams, 0, LTC_ASN1_OBJECT_IDENTIFIER, oid->OID, oid->OIDlen);
       type &= ~PK_CURVEOID;
   }
   else {
@@ -127,7 +153,7 @@ int ecc_export_full(unsigned char *out, unsigned long *outlen, int type, ecc_key
       LTC_SET_ASN1(seq_ecparams, 4, LTC_ASN1_INTEGER,           order,       1UL);
       LTC_SET_ASN1(seq_ecparams, 5, LTC_ASN1_SHORT_INTEGER,     &cofactor,   1UL);
 
-      /* ECParameters of ECPrivateKey SEQUENCE below */
+      /* ECParameters used by ECPrivateKey or SubjectPublicKeyInfo below */
       LTC_SET_ASN1(asn_ecparams, 0, LTC_ASN1_SEQUENCE, seq_ecparams, 6UL);
   }
 
@@ -169,7 +195,7 @@ int ecc_export_full(unsigned char *out, unsigned long *outlen, int type, ecc_key
       */
       err = der_encode_subject_public_key_info( out, outlen,
                                                 PKA_EC, bin_xy, len_xy,
-                                                asn_ecparams[0].type, asn_ecparams[0].data, asn_ecparams[0].size);
+                                                asn_ecparams[0].type, asn_ecparams[0].data, asn_ecparams[0].size );
   }
 
 error:
