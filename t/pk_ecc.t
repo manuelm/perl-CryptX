@@ -7,11 +7,11 @@ use Crypt::PK::ECC qw(ecc_encrypt ecc_decrypt ecc_sign_message ecc_verify_messag
 sub read_file {
   my ($file) = @_;
   return unless $file;
-  if (defined(my $fh = IO::File->new($file, 'r'))) {
+  if (open(my $fh, "<", $file)) {
     local $/;
-    $fh->binmode;
+    binmode($fh);
     my $content = <$fh>;
-    $fh->close;
+    close($fh);
     return $content;
   }
 }
