@@ -1,8 +1,20 @@
 use strict;
 use warnings;
-use Test::More tests => 95;
+use Test::More tests => 109;
 
 use Crypt::PK::ECC qw(ecc_encrypt ecc_decrypt ecc_sign_message ecc_verify_message ecc_sign_hash ecc_verify_hash ecc_shared_secret);
+
+sub read_file {
+  my ($file) = @_;
+  return unless $file;
+  if (defined(my $fh = IO::File->new($file, 'r'))) {
+    local $/;
+    $fh->binmode;
+    my $content = <$fh>;
+    $fh->close;
+    return $content;
+  }
+}
 
 {
   my $k;
@@ -43,6 +55,18 @@ use Crypt::PK::ECC qw(ecc_encrypt ecc_decrypt ecc_sign_message ecc_verify_messag
   ok($k, 'load cryptx_pub_ecc2.pem');
   ok(!$k->is_private, 'is_private cryptx_pub_ecc2.pem');
   $k = Crypt::PK::ECC->new('t/data/cryptx_pub_ecc2.pem');
+
+  for (qw( cryptx_pub_ecc1.der cryptx_pub_ecc1.pem cryptx_pub_ecc2.der cryptx_pub_ecc2.pem )) {
+    $k = Crypt::PK::ECC->new("t/data/$_");
+    is($k->export_key_der('public'), read_file("t/data/$_"), 'export_key_der public') if (substr($_, -3) eq "der");
+    is($k->export_key_pem('public'), read_file("t/data/$_"), 'export_key_pem public') if (substr($_, -3) eq "pem");
+  }
+
+  for (qw( cryptx_priv_ecc1.der cryptx_priv_ecc1.pem cryptx_priv_ecc2.der cryptx_priv_ecc2.pem )) {
+    $k = Crypt::PK::ECC->new("t/data/$_");
+    is($k->export_key_der('private'), read_file("t/data/$_"), 'export_key_der private') if (substr($_, -3) eq "der");
+    is($k->export_key_pem('private'), read_file("t/data/$_"), 'export_key_pem private') if (substr($_, -3) eq "pem");
+  }
 
   for (qw( openssl_ec1.pub.pem openssl_ec1.pub.der openssl_ec1.pubc.der openssl_ec1.pubc.pem
            cryptx_pub_ecc1_OLD.der cryptx_pub_ecc1_OLD.pem cryptx_pub_ecc2_OLD.der cryptx_pub_ecc2_OLD.pem )) {
@@ -101,6 +125,8 @@ use Crypt::PK::ECC qw(ecc_encrypt ecc_decrypt ecc_sign_message ecc_verify_messag
   #ok($k->export_key_pem('public'), 'export_key_pem pub');
   ok($k->export_key_der('private'), 'export_key_der pri');
   ok($k->export_key_der('public'), 'export_key_der pub');
+  ok($k->export_key_der('private_short'), 'export_key_der pri_short');
+  ok($k->export_key_der('public_short'), 'export_key_der pub_short');
 }
 
 {
@@ -122,20 +148,26 @@ use Crypt::PK::ECC qw(ecc_encrypt ecc_decrypt ecc_sign_message ecc_verify_messag
 }
 
 for my $priv (qw/openssl_ec-short.pem openssl_ec-short.der/) {
-  my $k = Crypt::PK::ECC->new("t/data/$priv");
+  my $f = "t/data/$priv";
+  my $k = Crypt::PK::ECC->new($f);
   ok($k, "load $priv");
   ok($k->is_private, "is_private $priv");
   is($k->size, 32, "size $priv");
   is(uc($k->key2hash->{pub_x}), 'A01532A3C0900053DE60FBEFEFCCA58793301598D308B41E6F4E364E388C2711', "key2hash $priv");
   is(uc($k->curve2hash->{prime}), 'FFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF', "curve2hash $priv");
   is($k->key2hash->{curve_name}, "secp256r1", "EC curve_name is lowercase");
+  is($k->export_key_der('private_short'), read_file($f), 'export_key_der private_oid') if (substr($priv, -3) eq "der");
+  is($k->export_key_pem('private_short'), read_file($f), 'export_key_pem private_oid') if (substr($priv, -3) eq "pem");
 }
 
 for my $pub (qw/openssl_ec-short.pub.pem openssl_ec-short.pub.der/) {
-  my $k = Crypt::PK::ECC->new("t/data/$pub");
+  my $f = "t/data/$pub";
+  my $k = Crypt::PK::ECC->new($f);
   ok($k, "load $pub");
   ok(!$k->is_private, "is_private $pub");
   is($k->size, 32, "$pub size");
   is(uc($k->key2hash->{pub_x}), 'A01532A3C0900053DE60FBEFEFCCA58793301598D308B41E6F4E364E388C2711', "key2hash $pub");
   is($k->key2hash->{curve_name}, "secp256r1", "EC curve_name is lowercase");
+  is($k->export_key_der('public_short'), read_file($f), 'export_key_der public_short') if (substr($pub, -3) eq "der");
+  is($k->export_key_pem('public_short'), read_file($f), 'export_key_pem public_short') if (substr($pub, -3) eq "pem");
 }
