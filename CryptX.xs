@@ -233,19 +233,19 @@ ltc_ecc_set_type* _ecc_set_dp_from_SV(ltc_ecc_set_type *dp, SV *curve)
     UV uv;
 
     if (!SvOK(*sv_oid)) croak("FATAL: ecparams: undefined param oid");
-    str_oid = SvPV_nolen(*sv_oid);
-    for (i = 0; i < sizeof(oid.OID)/sizeof(oid.OID[0]) && *str_oid != '\0'; i++) {
+    str_oid = end_ptr = SvPV_nolen(*sv_oid);
+    while (i < sizeof(oid.OID)/sizeof(oid.OID[0]) && *str_oid != '\0') {
       errno = 0;
       val = strtoul(str_oid, &end_ptr, 10);
       if (errno != 0 || str_oid == end_ptr) break; // parsing failed
       if (val > (uint32_t)-1) break;               // x64 check
-      oid.OID[i] = val;
+      oid.OID[i++] = val;
       str_oid = end_ptr;
       if (*str_oid != '.') break;
       str_oid++;
     }
-    if (*end_ptr != '\0') croak("FATAL: ecparams: oid has invalid format");
-    oid.OIDlen = i + 1;
+    if (i == 0 || *end_ptr != '\0') croak("FATAL: ecparams: oid has invalid format");
+    oid.OIDlen = i;
   }
 
   err = ecc_dp_set( dp,
