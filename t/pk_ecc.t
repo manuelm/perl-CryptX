@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 124;
+use Test::More tests => 125;
 
 use Crypt::PK::ECC qw(ecc_encrypt ecc_decrypt ecc_sign_message ecc_verify_message ecc_sign_hash ecc_verify_hash ecc_shared_secret);
 
@@ -198,13 +198,13 @@ for my $pub (qw/openssl_ec-short.pub.pem openssl_ec-short.pub.der/) {
   # invalid OID
   $k = Crypt::PK::ECC->new;
   eval { $k->generate_key({ %$params, oid => undef }); };
-  ok($@, 'generate_key oid undef');
-  eval { $k->generate_key({ %$params, oid => "" }); };
-  ok($@, 'generate_key oid empty');
+  ok($@, "generate_key oid undef");
+  eval { $k->generate_key({ %$params, oid => '' }) };
+  ok($@, "generate_key oid empty");
   eval { $k->generate_key({ %$params, oid => '1.2.3.4.' }); };
-  ok($@, 'generate_key oid invalid');
+  ok($@, "generate_key oid invalid");
   eval { $k->generate_key({ %$params, oid => '1.2.4294967296.4' }); };
-  ok($@, 'generate_key oid out of range');
+  ok($@, "generate_key oid out of range");
 
   # auto OID
   $k = Crypt::PK::ECC->new;
@@ -216,6 +216,8 @@ for my $pub (qw/openssl_ec-short.pub.pem openssl_ec-short.pub.der/) {
 
   # custom OID
   $k = Crypt::PK::ECC->new;
-  ok($k->generate_key({ %$params, oid => '1.2.123.4' }), "generate_key custom oid");
+  ok($k->generate_key({ %$params, A => "0", oid => '2.3.132.0.34' }), "generate_key custom oid");
   ok($k->export_key_der('private_short'), "export_key_der custom oid");
+  # NOTE: importing the short form again won't work as curve is not known
+  # importing key2hash parameters won't work either as we do a curve lookup beforehand
 }
