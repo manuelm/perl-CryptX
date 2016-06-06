@@ -229,14 +229,17 @@ ltc_ecc_set_type* _ecc_set_dp_from_SV(ltc_ecc_set_type *dp, SV *curve)
   if ((sv_oid = hv_fetchs(h, "oid", 0)) != NULL) {
     char *str_oid, *end_ptr;
     unsigned int i = 0;
+    unsigned long val;
     UV uv;
 
     if (!SvOK(*sv_oid)) croak("FATAL: ecparams: undefined param oid");
     str_oid = SvPV_nolen(*sv_oid);
     for (i = 0; i < sizeof(oid.OID)/sizeof(oid.OID[0]) && *str_oid != '\0'; i++) {
       errno = 0;
-      oid.OID[i] = strtoul(str_oid, &end_ptr, 10);
+      val = strtoul(str_oid, &end_ptr, 10);
       if (errno != 0 || str_oid == end_ptr) break; // parsing failed
+      if (val > (uint32_t)-1) break;               // x64 check
+      oid.OID[i] = val;
       str_oid = end_ptr;
       if (*str_oid != '.') break;
       str_oid++;
