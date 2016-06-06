@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More tests => 109;
+use Test::More tests => 124;
 
 use Crypt::PK::ECC qw(ecc_encrypt ecc_decrypt ecc_sign_message ecc_verify_message ecc_sign_hash ecc_verify_hash ecc_shared_secret);
 
@@ -17,7 +17,7 @@ sub read_file {
 }
 
 {
-  my $k;
+  my ($k, $k2);
 
   $k = Crypt::PK::ECC->new('t/data/cryptx_priv_ecc1.der');
   ok($k, 'load cryptx_priv_ecc1.der');
@@ -25,6 +25,18 @@ sub read_file {
   is($k->size, 32, 'size');
   is(uc($k->key2hash->{pub_x}), 'C068B754877A4AB328A569BAC6D464A81B17E527D2D652572ABB11BDA3572D50', 'key2hash');
   is(uc($k->curve2hash->{prime}), 'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F', 'curve2hash');
+
+  $k2 = Crypt::PK::ECC->new;
+  $k2->import_key(\$k->export_key_pem('private'));
+  is($k->export_key_der('private'), $k2->export_key_der('private'), 'import_key priv pem');
+
+  $k2 = Crypt::PK::ECC->new;
+  $k2->import_key(\$k->export_key_pem('public'));
+  is($k->export_key_der('public'), $k2->export_key_der('public'), 'import_key pub pem');
+
+  $k2 = Crypt::PK::ECC->new;
+  $k2->import_key($k->key2hash);
+  is($k->export_key_der('private'), $k2->export_key_der('private'), 'import_key hash');
 
   $k = Crypt::PK::ECC->new('t/data/cryptx_priv_ecc2.der');
   ok($k, 'load cryptx_priv_ecc2.der');
@@ -170,4 +182,40 @@ for my $pub (qw/openssl_ec-short.pub.pem openssl_ec-short.pub.der/) {
   is($k->key2hash->{curve_name}, "secp256r1", "EC curve_name is lowercase");
   is($k->export_key_der('public_short'), read_file($f), 'export_key_der public_short') if (substr($pub, -3) eq "der");
   is($k->export_key_pem('public_short'), read_file($f), 'export_key_pem public_short') if (substr($pub, -3) eq "pem");
+}
+
+{
+  my $k = Crypt::PK::ECC->new;
+  eval { $k->export_key_pem('public'); };
+  ok($@, 'key not generated');
+
+  my $params = $Crypt::PK::ECC::curve{secp384r1};
+  ok($k->generate_key($params), "generate_key hash params");
+
+  # OID tests
+  delete($params->{oid});
+
+  # invalid OID
+  $k = Crypt::PK::ECC->new;
+  eval { $k->generate_key({ %$params, oid => undef }); };
+  ok($@, 'generate_key oid undef');
+  eval { $k->generate_key({ %$params, oid => "" }); };
+  ok($@, 'generate_key oid empty');
+  eval { $k->generate_key({ %$params, oid => '1.2.3.4.' }); };
+  ok($@, 'generate_key oid invalid');
+  eval { $k->generate_key({ %$params, oid => '1.2.4294967296.4' }); };
+  ok($@, 'generate_key oid out of range');
+
+  # auto OID
+  $k = Crypt::PK::ECC->new;
+  ok($k->generate_key({ %$params }), "generate_key auto oid");
+  ok($k->export_key_der('private_short'), "export_key_der auto oid");
+  ok($k->generate_key({ %$params, A => "0" }), "generate_key invalid auto oid");
+  eval { $k->export_key_der('private_short'); };
+  ok($@, "export_key_der invalid auto oid");
+
+  # custom OID
+  $k = Crypt::PK::ECC->new;
+  ok($k->generate_key({ %$params, oid => '1.2.123.4' }), "generate_key custom oid");
+  ok($k->export_key_der('private_short'), "export_key_der custom oid");
 }
