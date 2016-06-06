@@ -220,4 +220,5 @@ for my $pub (qw/openssl_ec-short.pub.pem openssl_ec-short.pub.der/) {
   ok($k->export_key_der('private_short'), "export_key_der custom oid");
   # NOTE: importing the short form again won't work as curve is not known
   # importing key2hash parameters won't work either as we do a curve lookup beforehand
+  ok(exists($k->key2hash->{curve_oid}), "key2hash curve_oid exists");
 }
