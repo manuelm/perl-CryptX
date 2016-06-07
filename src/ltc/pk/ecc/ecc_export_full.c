@@ -86,36 +86,11 @@ int ecc_export_full(unsigned char *out, unsigned long *outlen, int type, ecc_key
           }
       */
 
-      const oid_st *oid = NULL;
-      if (key->dp->oid.OIDlen > 0) {
-          oid = &key->dp->oid;
-      }
-      else if (key->idx > -1) {
-          oid = &ltc_ecc_sets[key->idx].oid;
-      }
-      else {
-          int x;
-          /* lookup curve OID by curve parameters
-           * we assume every parameter has the same case (usually uppercase)
-           * and no leading zeros
-          */
-          for (x = 0; ltc_ecc_sets[x].size != 0; x++) {
-              if (XSTRCMP(ltc_ecc_sets[x].prime, key->dp->prime) == 0 &&
-                  XSTRCMP(ltc_ecc_sets[x].A,     key->dp->A)     == 0 &&
-                  XSTRCMP(ltc_ecc_sets[x].B,     key->dp->B)     == 0 &&
-                  XSTRCMP(ltc_ecc_sets[x].order, key->dp->order) == 0 &&
-                  XSTRCMP(ltc_ecc_sets[x].Gx,    key->dp->Gx)    == 0 &&
-                  XSTRCMP(ltc_ecc_sets[x].Gy,    key->dp->Gy)    == 0 &&
-                  ltc_ecc_sets[x].cofactor == key->dp->cofactor) {
-                  oid = &ltc_ecc_sets[x].oid;
-                  break;
-              }
-          }
-      }
-      if (oid == NULL) { err = CRYPT_INVALID_ARG; goto error; } //TODO or fallback?
+      /* BEWARE: exporting PK_CURVEOID with custom OID means we're unable to read the curve again */
+      if (key->dp->oid.OIDlen == 0) { err = CRYPT_INVALID_ARG; goto error; }
 
       /* ECParameters used by ECPrivateKey or SubjectPublicKeyInfo below */
-      LTC_SET_ASN1(asn_ecparams, 0, LTC_ASN1_OBJECT_IDENTIFIER, oid->OID, oid->OIDlen);
+      LTC_SET_ASN1(asn_ecparams, 0, LTC_ASN1_OBJECT_IDENTIFIER, key->dp->oid.OID, key->dp->oid.OIDlen);
       type &= ~PK_CURVEOID;
   }
   else {
